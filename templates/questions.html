@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Questions</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+
+<div class="navbar">
+    <h2>{{ company.upper() }} Questions</h2>
+    <a href="/companies">Back</a>
+</div>
+
+<div class="questions-container">
+{% for q in questions %}
+<div class="question-card">
+
+    <p>{{ loop.index }}. {{ q[0] }}</p>
+
+    <div class="btn-group">
+        <a href="{{ q[1] }}" target="_blank" class="btn">Solve</a>
+
+        <form action="/mark_done" method="POST" style="margin:0;">
+            <input type="hidden" name="email" value="{{ session['user'] }}">
+            <input type="hidden" name="company" value="{{ company }}">
+            <input type="hidden" name="question" value="{{ q[0] }}">
+
+            <button type="submit" class="btn 
+                {% if q[0] in completed %} done-btn {% endif %}">
+                
+                {% if q[0] in completed %}
+                    Done ✓
+                {% else %}
+                    Mark as Done
+                {% endif %}
+            </button>
+        </form>
+    </div>
+
+</div>
+{% endfor %}
+
+</div>
+
+</body>
+</html>

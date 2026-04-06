@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Viva Practice</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<div class="navbar">
+    <h2>{{ viva_type|upper }} VIVA</h2>
+    <a href="/dashboard">Dashboard</a>
+</div>
+
+<div class="questions-container">
+
+    <div class="question-card">
+
+        <h4 id="progress"></h4>
+        <h2 id="question"></h2>
+
+       <div class="btn-group">
+    <button onclick="startRecording()" class="btn" id="startBtn">🎤 Start</button>
+    <button onclick="stopRecording()" class="btn" id="stopBtn" disabled>⏹ Stop</button>
+    <button onclick="submitAnswer()" class="btn">✅ Submit</button>
+    <button onclick="nextQuestion()" class="btn">➡ Next</button>
+</div>
+
+        <h4>Your Answer:</h4>
+        <div class="answer-box">
+            <p id="output">Start speaking...</p>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Store questions safely -->
+<script id="questions-data" type="application/json">
+    {{ questions | tojson | safe }}
+</script>
+
+<script>
+let questions = JSON.parse(
+    document.getElementById("questions-data").textContent
+);
+
+let index = 0;
+let finalText = "";
+
+// Speech Recognition
+let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+recognition.continuous = true;
+
+function showQuestion() {
+    document.getElementById("question").innerText = questions[index][2];
+    document.getElementById("progress").innerText = 
+        "Question " + (index + 1) + " / " + questions.length;
+}
+
+function startRecording() {
+    recognition.start();
+    finalText = "";
+
+    document.getElementById("output").innerText = "Listening...";
+    document.getElementById("startBtn").disabled = true;
+    document.getElementById("stopBtn").disabled = false;
+}
+
+function stopRecording() {
+    recognition.stop();
+
+    document.getElementById("startBtn").disabled = false;
+    document.getElementById("stopBtn").disabled = true;
+}
+
+recognition.onresult = function(event) {
+    let interim = "";
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+        let transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+            finalText += transcript + " ";
+        } else {
+            interim += transcript;
+        }
+    }
+    document.getElementById("output").innerText = finalText + interim;
+};
+
+function nextQuestion() {
+  
+
+    if (finalText.trim() !== "") {
+        submitAnswer();
+    }
+    index++;
+    finalText = "";
+
+    if (index < questions.length) {
+        showQuestion();
+        document.getElementById("output").innerText = "Start speaking...";
+    } else {
+        alert("🎉 Viva Completed!");
+    }
+}
+
+function submitAnswer() {
+
+    let question = questions[index][2];
+    let answer = finalText;
+
+    if (answer.trim() === "") {
+        alert("Please record or speak your answer first!");
+        return;
+    }
+
+    fetch('/submit_answer', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: `question=${encodeURIComponent(question)}&answer=${encodeURIComponent(answer)}`
+    })
+    .then(response => response.text())
+    .then(data => {
+        alert("✅ Answer submitted!");
+    })
+    .catch(error => {
+        console.error(error);
+        alert("❌ Error submitting answer");
+    });
+}
+
+// Load first question
+showQuestion();
+</script>
+
+</body>
+</html>

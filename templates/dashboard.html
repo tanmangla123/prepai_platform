@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+
+<div class="navbar">
+    <h2>PrepAI Dashboard</h2>
+    <a href="/logout">Logout</a>
+</div>
+
+<div class="dashboard">
+
+    <h1>Welcome, {{ user }} 👋</h1>
+
+    <div class="cards">
+
+    <div class="card">
+        <h3>Questions Solved</h3>
+        <p>{{ count }}</p>
+    </div>
+
+    <div class="card">
+        <h3>Progress</h3>
+        <p>{{ progress }}%</p>
+    </div>
+
+    <div class="card">
+        <h3>Level</h3>
+        <p>{{ level }}</p>
+    </div>
+
+    <div class="card">
+        <h3>Companies</h3>
+        <a href="/companies">Start Practice</a>
+    </div>
+
+    <div class="card">
+        <h3>Viva Practice</h3>
+        <a href="/viva_select">Start Viva</a>
+    </div>
+    <br><br>
+    
+
+
+    </div>
+<img src="/static/images/images1.png" alt="Dashboard Image" class="dashboard-image"  
+width="300px" height="300px" style="display: block; margin-left: auto; margin-right: auto; margin-bottom: 20px; 
+align-items: center;">
+</div>
+
+</body>
+</html>
