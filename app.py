@@ -16,9 +16,9 @@ cursor = db.cursor()
 
 import google.generativeai as genai
 
-genai.configure(api_key="AIzaSyCyRNUchdgsmTFShzhiL-o9BL_MMPiBLFI")
+genai.configure(api_key="AIzaSyBg8oZB66gOd1-Ja1jK6kYJaOLyA70oHRI")
 
-model = genai.GenerativeModel("models/text-bison-001")
+model = genai.GenerativeModel("models/gemini-flash-latest")
 
 # Company Questions Data
 company_questions = {
@@ -110,7 +110,7 @@ def login():
         user = cursor.fetchone()
 
         if user:
-            session['user'] = user[1]   # store name
+            session['user'] = user[2]   # store email
             return redirect('/dashboard')
         else:
             return "Invalid Email or Password ❌"
@@ -133,11 +133,11 @@ def dashboard():
         )
         cursor = conn.cursor()
 
-        # Correct column name
+        # column name
         cursor.execute("SELECT COUNT(*) FROM progress WHERE email=%s", (email,))
         count = cursor.fetchone()[0]
 
-        # Total questions (update if you add more)
+        # Total questions (update if we add more)
         total_questions = 30
 
         # Progress %
@@ -247,6 +247,10 @@ def viva_type(type):
         cursor.execute("SELECT * FROM viva_questions WHERE subject!='HR'")
 
     questions = cursor.fetchall()
+    questions = [list(q) for q in questions]
+
+    print(questions)  # optional debug
+
 
     return render_template('viva.html', questions=questions, viva_type=type)
 
@@ -261,38 +265,58 @@ def viva_select():
 
 
 def analyze_answer(question, answer):
-    prompt = f"""
-    You are an interview expert.
+    try:
+        prompt = f"""
+You are an experienced technical interviewer and mentor.
 
-    Question: {question}
-    Candidate Answer: {answer}
+Question: {question}
+Answer: {answer}
 
-    Analyze and give:
-    1. Score out of 10
-    2. What is good
-    3. What is missing
-    4. How to improve
-    5. Ideal short answer
+Give feedback in a balanced way:
+- Not too long, not too short
+- Clear, structured, and helpful
+- Easy to understand (no heavy jargon)
+- Practical suggestions for improvement
 
-    Keep it simple and structured.
-    """
+Format:
 
-    response = model.generate_content(prompt)
-    return response.text
+Score: X/10
+
+Strengths:
+- (2-3 clear points)
+
+Weaknesses:
+- (2-3 clear points)
+
+How to Improve:
+- (actionable advice, what exactly to do better)
+
+Keep tone:
+- Professional but friendly
+- Like a real interviewer guiding a student
+"""
+
+        response = model.generate_content(prompt)
+
+        return response.text
+
+    except Exception as e:
+        return f"❌ AI Error: {str(e)}"
 
 
-@app.route('/test-ai')
-def test_ai():
+ # @app.route('/test-ai')
+#def test_ai():
     try:
         response = model.generate_content("Say hello in one line")
         return response.text
     except Exception as e:
         return str(e)
-    
 
 
 
     
+from flask import jsonify
+
 @app.route('/submit_answer', methods=['POST'])
 def submit_answer():
     question = request.form['question']
@@ -313,6 +337,22 @@ def submit_answer():
     )
     conn.commit()
 
-    return "Answer submitted successfully"
+    # 🔥 AI ANALYSIS
+    feedback = analyze_answer(question, answer)
+
+    return jsonify({
+        "status": "success",
+        "feedback": feedback
+    })
+
+    #return "Answer submitted successfully"
+
+@app.route('/models')
+def list_models():
+    import google.generativeai as genai
+
+    models = genai.list_models()
+    return "<br>".join([m.name for m in models])
+
 if __name__ == '__main__':
     app.run(debug=True)
