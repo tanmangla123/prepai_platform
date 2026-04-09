@@ -29,20 +29,35 @@
         <div class="answer-box">
             <p id="output">Start speaking...</p>
         </div>
+        <h4>AI Feedback:</h4>
+
+<div class="feedback-box">
+    <div id="score" class="score"></div>
+
+    <div class="feedback-section good">
+        <h4>✅ Strengths</h4>
+        <p id="strengths"></p>
+    </div>
+
+    <div class="feedback-section bad">
+        <h4>❌ Weaknesses</h4>
+        <p id="weaknesses"></p>
+    </div>
+
+    <div class="feedback-section improve">
+        <h4>💡 Improvement</h4>
+        <p id="improvement"></p>
+    </div>
+</div>
 
     </div>
 
 </div>
 
 <!-- Store questions safely -->
-<script id="questions-data" type="application/json">
-    {{ questions | tojson | safe }}
-</script>
-
 <script>
-let questions = JSON.parse(
-    document.getElementById("questions-data").textContent
-);
+let questions = {{ questions | tojson | safe }};
+console.log("Questions:", questions);
 
 let index = 0;
 let finalText = "";
@@ -51,9 +66,17 @@ let finalText = "";
 let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
 recognition.continuous = true;
 
+// SHOW FIRST QUESTION
+window.onload = function() {
+    showQuestion();
+};
+
 function showQuestion() {
-    document.getElementById("question").innerText = questions[index][2];
-    document.getElementById("progress").innerText = 
+    let q = questions[index];
+    let questionText = q[2] || q[1] || q[0];
+
+    document.getElementById("question").innerText = questionText;
+    document.getElementById("progress").innerText =
         "Question " + (index + 1) + " / " + questions.length;
 }
 
@@ -87,11 +110,12 @@ recognition.onresult = function(event) {
 };
 
 function nextQuestion() {
-  
 
-    if (finalText.trim() !== "") {
-        submitAnswer();
-    }
+    document.getElementById("score").innerText = "";
+    document.getElementById("strengths").innerText = "";
+    document.getElementById("weaknesses").innerText = "";
+    document.getElementById("improvement").innerText = "";
+
     index++;
     finalText = "";
 
@@ -105,13 +129,15 @@ function nextQuestion() {
 
 function submitAnswer() {
 
-    let question = questions[index][2];
+    let question = questions[index][2] || questions[index][1];
     let answer = finalText;
 
     if (answer.trim() === "") {
         alert("Please record or speak your answer first!");
         return;
     }
+
+    document.getElementById("score").innerText = "⏳ Evaluating...";
 
     fetch('/submit_answer', {
         method: 'POST',
@@ -120,18 +146,37 @@ function submitAnswer() {
         },
         body: `question=${encodeURIComponent(question)}&answer=${encodeURIComponent(answer)}`
     })
-    .then(response => response.text())
+    .then(response => response.json())
     .then(data => {
-        alert("✅ Answer submitted!");
+        let feedback = data.feedback;
+
+        let score = "";
+        let strengths = "";
+        let weaknesses = "";
+        let improvement = "";
+
+        let scoreMatch = feedback.match(/Score:\s*(.*)/);
+        if (scoreMatch) score = scoreMatch[1];
+
+        let strengthsMatch = feedback.match(/Strengths:\s*([\s\S]*?)Weaknesses:/);
+        if (strengthsMatch) strengths = strengthsMatch[1];
+
+        let weakMatch = feedback.match(/Weaknesses:\s*([\s\S]*?)How to Improve:/);
+        if (weakMatch) weaknesses = weakMatch[1];
+
+        let improveMatch = feedback.match(/How to Improve:\s*([\s\S]*)/);
+        if (improveMatch) improvement = improveMatch[1];
+
+        document.getElementById("score").innerText = "⭐ Score: " + score.trim();
+        document.getElementById("strengths").innerText = strengths.trim();
+        document.getElementById("weaknesses").innerText = weaknesses.trim();
+        document.getElementById("improvement").innerText = improvement.trim();
     })
     .catch(error => {
         console.error(error);
         alert("❌ Error submitting answer");
     });
 }
-
-// Load first question
-showQuestion();
 </script>
 
 </body>
